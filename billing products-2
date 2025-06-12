@@ -1,0 +1,117 @@
+from login import connect_db, login
+
+def view_products():
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM products")
+    rows = cursor.fetchall()
+    print("\n Product List:")
+    print("ID | Name | Price | Stock")
+    for row in rows:
+        print(f"{row[0]} | {row[1]} | ₹{row[2]:.2f} | {row[3]}")
+    conn.close()
+
+def insert_product():
+    conn = connect_db()
+    cursor = conn.cursor()
+    try:
+        product_id = int(input("Enter product ID: "))
+        name = input("Enter product name: ")
+        price = float(input("Enter price: "))
+        stock = int(input("Enter stock quantity: "))
+        cursor.execute("INSERT INTO products VALUES (%s, %s, %s, %s)", (product_id, name, price, stock))
+        conn.commit()
+        print(" Product inserted successfully.")
+    except Exception as e:
+        print(" Error inserting product:", e)
+    conn.close()
+
+def delete_product():
+    conn = connect_db()
+    cursor = conn.cursor()
+    product_id = int(input("Enter product ID to delete: "))
+    cursor.execute("DELETE FROM products WHERE product_id = %s", (product_id,))
+    conn.commit()
+    if cursor.rowcount > 0:
+        print(" Product deleted.")
+    else:
+        print("Product not found.")
+    conn.close()
+
+def generate_bill(customer_id, cart):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    total_amount = 0.0
+    for product_id, qty in cart.items():
+        cursor.execute("SELECT price, stock FROM products WHERE product_id = %s", (product_id,))
+        result = cursor.fetchone()
+        if not result:
+            print(f" Product ID {product_id} not found.")
+            conn.close()
+            return
+        price, stock = result
+        price = float(price)  # fix decimal issue
+        if stock < qty:
+            print(f" Not enough stock for product {product_id}")
+            conn.close()
+            return
+        total_amount += price * qty
+
+    # Insert into bills table
+    cursor.execute("INSERT INTO bills (customer_id, total_amount) VALUES (%s, %s)", (customer_id, total_amount))
+    bill_id = cursor.lastrowid
+
+    # Insert into bill_items and update stock
+    for product_id, qty in cart.items():
+        cursor.execute("SELECT price FROM products WHERE product_id = %s", (product_id,))
+        price = float(cursor.fetchone()[0])
+        item_total = price * qty
+        cursor.execute(
+            "INSERT INTO bill_items (bill_id, product_id, quantity, item_total) VALUES (%s, %s, %s, %s)",
+            (bill_id, product_id, qty, item_total)
+        )
+        cursor.execute("UPDATE products SET stock = stock - %s WHERE product_id = %s", (qty, product_id))
+
+    conn.commit()
+    conn.close()
+    print(f"\n Bill Generated!")
+    print(f" Bill ID: {bill_id}")
+    print(f" Total Amount: ₹{total_amount:.2f}")
+
+def menu():
+    while True:
+        print("\n========== Supermarket Menu ==========")
+        print("1. View Products")
+        print("2. Insert New Product")
+        print("3. Delete Product")
+        print("4. Generate Bill")
+        print("5. Exit")
+        choice = input("Choose an option (1-5): ")
+
+        if choice == '1':
+            view_products()
+        elif choice == '2':
+            insert_product()
+        elif choice == '3':
+            delete_product()
+        elif choice == '4':
+            customer_id = login()
+            if customer_id:
+                cart = {}
+                while True:
+                    view_products()
+                    pid = int(input("Enter product ID to add to cart (0 to finish): "))
+                    if pid == 0:
+                        break
+                    qty = int(input("Enter quantity: "))
+                    cart[pid] = cart.get(pid, 0) + qty
+                generate_bill(customer_id, cart)
+        elif choice == '5':
+            print(" Exiting...")
+            break
+        else:
+            print(" Invalid choice. Try again.")
+
+if __name__ == "__main__":
+    menu()
