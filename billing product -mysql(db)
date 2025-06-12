@@ -1,0 +1,51 @@
+-- Create database
+CREATE DATABASE supermarket;
+
+USE supermarket;
+
+-- Table: products
+CREATE TABLE products (
+    product_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    price DECIMAL(10,2),
+    stock INT
+);
+
+-- Table: customers
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY,
+    name VARCHAR(100)
+);
+
+-- Table: bills
+CREATE TABLE bills (
+    bill_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT,
+    total_amount DECIMAL(10,2),
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+-- Table: bill_items
+CREATE TABLE bill_items (
+    item_id INT PRIMARY KEY AUTO_INCREMENT,
+    bill_id INT,
+    product_id INT,
+    quantity INT,
+    item_total DECIMAL(10,2),
+    FOREIGN KEY (bill_id) REFERENCES bills(bill_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+-- Sample data
+INSERT INTO products VALUES
+(101, 'Apple', 3.00, 100),
+(102, 'Milk', 2.50, 50),
+(103, 'Bread', 1.75, 30);
+
+INSERT INTO customers VALUES
+(6,'Ragul'),
+(5,'Afrid'),
+(4,'kiran kumar');
+select * from products;
+select * from customers;
