@@ -1,0 +1,30 @@
+# login.py
+#login page
+import mysql.connector
+
+def connect_db():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",         # Change to your MySQL username
+        password="Ahmed@516", # Change to your MySQL password
+        database="supermarket"
+    )
+
+def check_customer_exists(customer_id):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM customers WHERE customer_id = %s", (customer_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+# Optional: a login prompt
+def login():
+    customer_id = int(input("Enter your Customer ID: "))
+    name = check_customer_exists(customer_id)
+    if name:
+        print(f" Welcome, {name}!")
+        return customer_id
+    else:
+        print(" Customer not found.")
+        return None
